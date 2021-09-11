@@ -19,7 +19,7 @@ def load_excel(path):
 
     for i in range(len(x)):
         X.append(x[i][:-1])
-        y.append(x[i][-1])
+        y.append(int(x[i][-1]))
 
     X = np.array(X)
     y = np.array(y)
@@ -34,23 +34,22 @@ print(X.shape)
 y = np.array(y)
 print(y)
 print(X)
-X = StandardScaler().fit_transform(X)
-print(X)
+#X = StandardScaler().fit_transform(X)
+#print(X)
 
 Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=420)
 
 
-class net(nn.Module):
-    """
-    定义了一个简单的三层全连接神经网络，每一层都是线性的
-    """
+class Net(nn.Module):
     def __init__(self, in_dim, n_hidden_1, n_hidden_2, out_dim):
-        super(net, self).__init__()
+        super(Net, self).__init__()
         self.layer1 = nn.Linear(in_dim, n_hidden_1)
         self.layer2 = nn.Linear(n_hidden_1, n_hidden_2)
         self.layer3 = nn.Linear(n_hidden_2, out_dim)
 
     def forward(self, x):
+        x = torch.tensor(x)
+        x = x.to(torch.float32)
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
@@ -59,9 +58,9 @@ class net(nn.Module):
 
 batch_size = 64
 learning_rate = 0.02
-num_epoches = 20
+num_epoches = 200
 
-model = net(106, 300, 100, 2)
+model = Net(106*1, 300, 100, 2)
 
 if torch.cuda.is_available():
     model = model.cuda()
@@ -78,15 +77,33 @@ for i in range(len(X)):
         datas = datas.cuda()
         label = label.cuda()
     out = model(datas)
-    loss = criterion(out, label)
+    print(label)
+
+    #label = np.reshape(label, 1)
+
+    label = label.reshape(label, 1)
+
+    print(label.shape)
+    label = torch.tensor(label)
+
+    label = label.to(torch.float32)
+    print(label.shape)
+
+    print(out)
+    print(out.shape)
+    # loss = criterion(out, label)
+    loss = torch.nn.CrossEntropyLoss()(label, out)
     data = [datas, label]
+    # data = np.array(datas, label)
+    # print(data.np.shape)
     print_loss = loss.data.item()
+    # print_loss = torch.nn.CrossEntropyLoss()(label, out)
 
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
     epoch += 1
-    if epoch%50 == 0:
+    if epoch % 50 == 0:
         print('epoch: {}, loss: {:.4}'.format(epoch, loss.data.item()))
 
 # test
