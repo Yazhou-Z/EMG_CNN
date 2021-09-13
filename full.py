@@ -4,6 +4,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import torch
 from torch import nn, optim
+import torch.nn.functional as F
+import matplotlib as plt
 
 
 def load_excel(path):
@@ -22,14 +24,41 @@ def load_excel(path):
             x[i][num] = float(x[i][num])
         X.append(x[i][:-1])
         if x[i][-1] == 1:
-            y.append([1, 0])
+            y.append(1)
         else:
-            y.append([0, 1])
+            y.append(0)
 
     X = np.array(X)
-    y = np.array(y)
+    X = X.astype(float)
+
 
     return X, y
+
+
+def manage(X, spare):
+    for data in range(len(X)):
+        for scalar in range(len(X[data])):
+            X[data][scalar] = (X[data][scalar] // spare) * spare + spare
+    return X
+
+
+def expand_data(X, y, size):
+    new = []
+    new_label = []
+    for l in range(len(X)):
+        if y[l] == 0:
+            label = 0
+        else:
+            label = 1
+        for i in range(len(X[l]) // size):
+            new_col = []
+            for j in range(len(X[l]) // size):
+                new_col.append(X[l][(j - 1) * size + i])
+            new_label.append(label)
+            new.append(new_col)
+    new = np.array(new)
+    new_label = np.array(new_label)
+    return new, new_label
 
 
 path = 'bu_data_for_ML.xlsx'
@@ -37,8 +66,12 @@ X, y = load_excel(path)
 
 print(X.shape)
 y = np.array(y)
-print(y)
-print(X)
+
+X = manage(X, 10)
+X, y = expand_data(X, y, 8)
+X = np.array(X)
+y = np.array(y)
+print(X.shape)
 # X = StandardScaler().fit_transform(X)
 # print(X)
 
@@ -55,17 +88,20 @@ class Net(nn.Module):
     def forward(self, x):
         x = torch.tensor(x)
         x = x.to(torch.float32)
-        x = self.layer1(x)
+        #x = self.layer1(x)
+        x = F.relu(self.layer1(x))
         x = self.layer2(x)
-        x = self.layer3(x)
+        # x = F.relu(self.layer2(x))
+        x = F.relu(self.layer3(x))
+        # x = torch.sigmoid(self.layer3(x))
         return x
 
 
 batch_size = 1
-learning_rate = 0.02
+learning_rate = 0.002
 num_epoches = 200
 
-model = Net(106*1, 300*1, 100*1, 2*1)
+model = Net(13, 200, 100, 2)
 
 if torch.cuda.is_available():
     print('cuda')
@@ -76,87 +112,58 @@ optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 # train
 epoch = 0
+while epoch < num_epoches:
+    for i in range(len(Xtrain)):
+        datas = Xtrain[i]
+        label = Ytrain[i]
+        if torch.cuda.is_available():
+            datas = datas.cuda()
+            label = label.cuda()
 
-datas = Xtrain[0]
-label = Ytrain[0]
-if torch.cuda.is_available():
-    datas = datas.cuda()
-    label = label.cuda()
-out = model(datas)
-print(out)
+        out = model(datas)
+        out = torch.unsqueeze(out, 0)
 
-print(label.shape)
+        label = torch.tensor(label, dtype=torch.long)
+        label = torch.unsqueeze(label, 0)
 
-#label = np.reshape(label, 1)
+        loss = torch.nn.CrossEntropyLoss()(out, label)
 
-label = label.reshape(label, 1)
+        data = [datas, label]
+        print_loss = loss.data.item()
 
-print(label.shape)
-label = torch.tensor(label)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-label = label.to(torch.float32)
-print(label.shape)
+        print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
 
-print(out)
-print(out.shape)
-# loss = criterion(out, label)
-loss = torch.nn.CrossEntropyLoss()(label, out)
+    epoch += 1
+    if epoch % 50 == 0:
+        print('epoch: {}, loss: {:.4}'.format(epoch, print_loss))
 
-# for i in range(len(X)):
-#     datas = Xtrain[i]
-#     label = Ytrain[i]
-#     if torch.cuda.is_available():
-#         datas = datas.cuda()
-#         label = label.cuda()
-#     out = model(datas)
-#     print(label.shape)
-#
-#     #label = np.reshape(label, 1)
-#
-#     label = label.reshape(label, 1)
-#
-#     print(label.shape)
-#     label = torch.tensor(label)
-#
-#     label = label.to(torch.float32)
-#     print(label.shape)
-#
-#     print(out)
-#     print(out.shape)
-#     # loss = criterion(out, label)
-#     loss = torch.nn.CrossEntropyLoss()(label, out)
-#     data = [datas, label]
-#     # data = np.array(datas, label)
-#     # print(data.np.shape)
-#     print_loss = loss.data.item()
-#     # print_loss = torch.nn.CrossEntropyLoss()(label, out)
-#
-#     optimizer.zero_grad()
-#     loss.backward()
-#     optimizer.step()
-#     epoch += 1
-#     if epoch % 50 == 0:
-#         print('epoch: {}, loss: {:.4}'.format(epoch, loss.data.item()))
-#
-# # test
-# model.eval()
-# eval_loss = 0
-# eval_acc = 0
-# for i in range(len(X)):
-#     datas = Xtest[i]
-#     label = Ytest[i]
-#     if torch.cuda.is_available():
-#         datas = datas.cuda()
-#         label = label.cuda()
-#     data = [datas, label]
-#
-#     out = model(datas)
-#     loss = criterion(out, label)
-#     eval_loss += loss.data.item()*label.size(0)
-#     _, pred = torch.max(out, 1)
-#     num_correct = (pred == label).sum()
-#     eval_acc += num_correct.item()
-# print('Test Loss: {:.6f}, Acc: {:.6f}'.format(
-#     eval_loss / (len(Xtest)),
-#     eval_acc / (len(Xtest))
-# ))
+# test
+model.eval()
+eval_loss = 0
+eval_acc = 0
+for i in range(len(Xtest)):
+    datas = Xtest[i]
+    label = Ytest[i]
+    if torch.cuda.is_available():
+        datas = datas.cuda()
+        label = label.cuda()
+    out = model(datas)
+    out = torch.unsqueeze(out, 0)
+
+    label = torch.tensor(label, dtype=torch.long)
+    label = torch.unsqueeze(label, 0)
+    loss = torch.nn.CrossEntropyLoss()(out, label)
+    data = [datas, label]
+
+    eval_loss += loss*label.size(0)
+    _, pred = torch.max(out, 1)
+    num_correct = (pred == label).sum()
+    eval_acc += num_correct.item()
+print('Test Loss: {:.6f}, Acc: {:.6f}'.format(
+    eval_loss / (len(Xtest)),
+    eval_acc / (len(Xtest))
+))
