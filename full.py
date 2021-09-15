@@ -38,7 +38,7 @@ def load_excel(path):
 def manage(X, spare):
     for data in range(len(X)):
         for scalar in range(len(X[data])):
-            X[data][scalar] = (X[data][scalar] // spare) * spare + spare
+            X[data][scalar] = (X[data][scalar] // spare) * spare  + spare
     return X
 
 
@@ -50,7 +50,7 @@ def expand_data(X, y, size):
             label = 0
         else:
             label = 1
-        for i in range(len(X[l]) // size):
+        for i in range(size):
             new_col = []
             for j in range(len(X[l]) // size):
                 new_col.append(X[l][(j - 1) * size + i])
@@ -68,40 +68,42 @@ print(X.shape)
 y = np.array(y)
 
 X = manage(X, 10)
-X, y = expand_data(X, y, 8)
+X, y = expand_data(X, y, 4)
 X = np.array(X)
 y = np.array(y)
 print(X.shape)
 # X = StandardScaler().fit_transform(X)
-# print(X)
+print(X)
 
 Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=420)
 
 
 class Net(nn.Module):
-    def __init__(self, in_dim, n_hidden_1, n_hidden_2, out_dim):
+    def __init__(self, in_dim, n_hidden_1, n_hidden_2, n_hidden_3, out_dim):
         super(Net, self).__init__()
         self.layer1 = nn.Linear(in_dim, n_hidden_1)
         self.layer2 = nn.Linear(n_hidden_1, n_hidden_2)
-        self.layer3 = nn.Linear(n_hidden_2, out_dim)
+        self.layer3 = nn.Linear(n_hidden_2, n_hidden_3)
+        self.layer4 = nn.Linear(n_hidden_3, out_dim)
 
     def forward(self, x):
         x = torch.tensor(x)
         x = x.to(torch.float32)
-        #x = self.layer1(x)
-        x = F.relu(self.layer1(x))
+        x = self.layer1(x)
+        # x = F.relu(self.layer1(x))
+        # x = self.layer2(x)
         x = self.layer2(x)
-        # x = F.relu(self.layer2(x))
-        x = F.relu(self.layer3(x))
+        x = self.layer3(x)
+        x = F.relu(self.layer4(x))
         # x = torch.sigmoid(self.layer3(x))
         return x
 
 
 batch_size = 1
-learning_rate = 0.002
-num_epoches = 200
+learning_rate = 0.0001
+num_epoches = 50
 
-model = Net(13, 200, 100, 2)
+model = Net(26, 400, 200, 50, 2)
 
 if torch.cuda.is_available():
     print('cuda')
@@ -138,7 +140,7 @@ while epoch < num_epoches:
         print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
 
     epoch += 1
-    if epoch % 50 == 0:
+    if epoch % 10 == 0:
         print('epoch: {}, loss: {:.4}'.format(epoch, print_loss))
 
 # test
