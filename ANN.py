@@ -1,11 +1,10 @@
 import xlrd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 import torch
 from torch import nn, optim
 import torch.nn.functional as F
-import matplotlib as plt
+# import matplotlib as plt
 
 
 def load_excel(path):
