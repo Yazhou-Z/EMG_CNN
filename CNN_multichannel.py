@@ -7,10 +7,64 @@ from torch import nn, optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-train = pd.read_csv("..//Kaggel_dataset/Electro-Myography-EMG-Dataset/extracted_features_and_labeled_dataset\(easiest\ to\ work\ with\)/emg_all_features_labeled.csv")
+def read_data(data="emg_all_features_labeled.csv", n = 0):
+    # csv.field_size_limit(500 * 1024 * 1024)
+    # csv_reader = csv.reader(open(data, ))
+    datas = pd.read_csv(data)
+    data_list = []
+    i = 0
+    l = []
+    for scalar in datas:
+        if i < 81:
+            l.append(float(str(scalar).replace(",", "")))
+            # print(i)
+            i += 1
+            print(l)
+        else:
+            print(l)
+            data_list.append(l)
+            # print(l)
+            i = 0
+            l = []
+
+    print(data_list)
+
+    x_l = []
+    y_l = []
+    for n in range(len(data_list)):
+        print(data_list[n])
+        one_l = [float(str(i).replace(",", "")) for i in l[-8:-1]]
+        print(one_l)
+        y_l.append(one_l)
+        ll = [float(str(i).replace(",", "")) for i in l[:-8]]
+        x_l.append(ll)
+
+    df = pd.read_csv(data)
+    # print(df.head())
+    # print(df.shape)
+
+    return x_l, y_l
 
 
+X, y = read_data()
 
+# Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=420)
+
+
+X = np.array(X)
+y = np.array(y)
+# Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=420)
+#
+# df = pd.read_csv()
+#
+#
+#
+#
+#
+# train_input_mean = train_input.mean()
+# train_input_sigma = train_input.std()
+# T
+#
 
 
 
