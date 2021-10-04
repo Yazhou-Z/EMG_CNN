@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 
+
 def read_data(data="kaggle_data.xlsx", n = 0):
     resArray = []
     data = xlrd.open_workbook(data)
