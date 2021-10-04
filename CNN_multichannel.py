@@ -43,8 +43,7 @@ y = np.array(y) # (6823,)
 
 class Cnn1d(nn.Module):
     def __init__(self, in_channels, out_channels, n_len_seg, n_classes, device, verbose=False):
-        super(CNN, self).__init__()
-
+        super(Cnn1d, self).__init__()
         self.n_len_seg = n_len_seg
         self.n_classes = n_classes
         self.in_channels = in_channels
@@ -54,47 +53,60 @@ class Cnn1d(nn.Module):
 
         # 6823, 80
         self.conv1 = nn.Sequential(
-            nn.Conv1d(80, 80, kernel_size=3, stride=3, padding=1),
-            nn.BatchNorm1d(128),
+            nn.Conv1d(80, 80, kernel_size=3, stride=3, padding=2),
+            nn.BatchNorm1d(80),
             nn.ReLU(inplace=True))
-        # 2275,
+        # 2275, 80
         self.conv2 = nn.Sequential(
-            nn.Conv1d(128, 128, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
+            nn.Conv1d(80, 80, kernel_size=3, stride=1, padding=2),
+            nn.BatchNorm1d(80),
+            nn.ReLU(inplace=True),
             nn.MaxPool1d(3, stride=3))
-        # 2274, 128
+        # 759, 80
+        self.conv3 = nn.Sequential(
+            nn.Conv1d(80, 160, kernel_size=3, stride=1, padding=0),
+            nn.BatchNorm1d(160),
+            nn.ReLU(inplace=True),
+            nn.MaxPool1d(3, stride=3))
+        # 253, 160
         self.conv4 = nn.Sequential(
-            nn.Conv1d(128, 256, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
+            nn.Conv1d(160, 160, kernel_size=3, stride=1, padding=2),
+            nn.BatchNorm1d(160),
+            nn.ReLU(inplace=True),
             nn.MaxPool1d(3, stride=3))
-        # 758, 256
+        # 85, 160
         self.conv5 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(256),
+            nn.Conv1d(160, 320, kernel_size=3, stride=1, padding=2),
+            nn.BatchNorm1d(320),
             nn.ReLU(),
             nn.MaxPool1d(3, stride=3))
-        # 9 x 256
+        # 29, 320
+        self.conv6 = nn.Sequential(
+            nn.Conv1d(320, 320, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm1d(320),
+            nn.ReLU(),
+            nn.MaxPool1d(3, stride=3))
+        # 10, 320
+        self.conv7 = nn.Sequential(
+            nn.Conv1d(320, 640, kernel_size=3, stride=1, padding=2),
+            nn.BatchNorm1d(640),
+            nn.ReLU(inplace=True),
+            nn.MaxPool1d(3, stride=3)
+        )
+        # 4, 320
+        self.conv8 = nn.Sequential(
+            nn.Conv1d(320, 640, kernel_size=4, stride=1),
+            nn.BatchNorm1d(640),
+            nn.ReLU(inplace=True),
+            nn.MaxPool1d(4, stride=4)
+        )
+        # 1, 640
         self.conv9 = nn.Sequential(
-            nn.Conv1d(256, 256, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.MaxPool1d(3, stride=3))
-        # 3 x 256
-        self.conv10 = nn.Sequential(
-            nn.Conv1d(256, 512, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(512),
-            nn.ReLU(),
-            nn.MaxPool1d(3, stride=3))
-        # 1 x 512
-        self.conv11 = nn.Sequential(
-            nn.Conv1d(512, 512, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(512),
-            nn.ReLU(),
-            nn.Dropout(config.DROPOUT))
-        # 1 x 512
-        self.fc = nn.Linear(512, 50)
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5)
+        )
+        # 1, 640
+        self.fc = nn.Linear(640, 80)
         self.activation = nn.Sigmoid()
 
     def forward(self, x):
@@ -102,7 +114,7 @@ class Cnn1d(nn.Module):
         # expected conv1d input : minibatch_size x num_channel x width
 
         x = x.view(x.shape[0], 1, -1)
-        # x : 23 x 1 x 59049
+        # x : 6823, 80
 
         out = self.conv1(x)
         out = self.conv2(out)
@@ -113,8 +125,6 @@ class Cnn1d(nn.Module):
         out = self.conv7(out)
         out = self.conv8(out)
         out = self.conv9(out)
-        out = self.conv10(out)
-        out = self.conv11(out)
 
         out = out.view(x.shape[0], out.size(1) * out.size(2))
         logit = self.fc(out)
@@ -148,7 +158,7 @@ batch_size = 1
 learning_rate = 0.0001
 num_epoches = 50
 
-model = cnn1dNet(80, 400, 200, 50, 8)
+model = Cnn1d(80, 400, 200, 50, 8)
 
 if torch.cuda.is_available():
     print('cuda')
