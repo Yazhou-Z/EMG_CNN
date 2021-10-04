@@ -68,6 +68,7 @@ def write_excel(name, value):
             sheet.cell(row = j + 1, column = i + 1, value = int(value[i][j]))
     workbook.save(name)
 
+# F.interpolate(x, scale_factor=2, mode='nearest'
 
 # data: 一组data
 # origin: 原data 有多少点
