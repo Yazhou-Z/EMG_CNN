@@ -21,10 +21,10 @@ def read_data(data="kaggle_data.xlsx", n = 0):
     y = []
 
     for i in range(len(x)):
-        for num in range(len(x[i][:-1])):
-            x[i][num] = float(x[i][num])
+        # for num in range(len(x[i][:-1])):
+        #     x[i][num] = float(x[i][num])
         X.append(x[i][:-1])
-        y.append(x[i][-1])
+        y.append(int(x[i][-1]))
 
     X = np.array(X)
     X = X.astype(float)
@@ -36,23 +36,29 @@ X, y = read_data()
 
 Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=420)
 
-print(X)
+print(X) # (6823, 80)
 print(y)
 
-X = np.array(X) # (6823, 80)
+Xtrain = np.array(Xtrain)
 y = np.array(y) # (6823,)
 
 
 class Cnn1d(nn.Module):
 
-    def __init__(self, in_channels, out_channels, n_len_seg, n_classes, device, verbose=False):
+    def __init__(self,
+                 in_size, out_channels,
+                 # # n_len_seg,
+                 # n_classes,
+                 # # device,
+                 # verbose=False
+                 ):
         super(Cnn1d, self).__init__()
-        self.n_len_seg = n_len_seg
-        self.n_classes = n_classes
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.device = device
-        self.verbose = verbose
+        # self.n_len_seg = n_len_seg
+        # self.n_classes = n_classes
+        # self.in_channels = in_channels
+        # self.out_channels = out_channels
+        # self.device = device
+        # self.verbose = verbose
 
         # 6823, 80
         self.conv1 = nn.Sequential(
@@ -116,7 +122,7 @@ class Cnn1d(nn.Module):
         # input x : 23 x 59049 x 1
         # expected conv1d input : minibatch_size x num_channel x width
 
-        x = x.view(x.shape[0], 1, -1)
+        # x = x.view(x.shape[0], 1, -1)
         # x : 6823, 80
 
         out = self.conv1(x)
@@ -141,6 +147,8 @@ batch_size = 1
 learning_rate = 0.0001
 num_epoches = 50
 
+model = Cnn1d(80, 7)
+
 if torch.cuda.is_available():
     print('cuda')
     model = model.cuda()
@@ -153,6 +161,7 @@ epoch = 0
 while epoch < num_epoches:
     for i in range(len(Xtrain)):
         datas = Xtrain[i]
+        # datas = tuple(t.to(device) for t in Xtrain[i])
         label = Ytrain[i]
         if torch.cuda.is_available():
             datas = datas.cuda()
