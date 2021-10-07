@@ -42,6 +42,10 @@ print(y)
 Xtrain = np.array(Xtrain)
 y = np.array(y) # (6823,)
 
+Xtrain = np.concatenate(list(Xtrain)).astype(np.float32)
+Xtrain = torch.tensor(Xtrain)
+print(Xtrain.shape)
+
 
 class Cnn1d(nn.Module):
 
@@ -60,27 +64,31 @@ class Cnn1d(nn.Module):
         # self.device = device
         # self.verbose = verbose
 
-        # 6823, 80
+        # input: (N, C in, L in) (6823, 1, 80)
+
+
+
+        # (6823, 1, 80)
         self.conv1 = nn.Sequential(
-            nn.Conv1d(80, 80, kernel_size=3, stride=3, padding=2),
-            nn.BatchNorm1d(80),
+            nn.Conv1d(1, 3, kernel_size=3, stride=3, padding=1),
+            nn.BatchNorm1d(3),
             nn.ReLU(inplace=True))
-        # 2275, 80
+        # 6823, 27
         self.conv2 = nn.Sequential(
-            nn.Conv1d(80, 80, kernel_size=3, stride=1, padding=2),
-            nn.BatchNorm1d(80),
+            nn.Conv1d(27, 9, kernel_size=3, stride=1),
+            nn.BatchNorm1d(9),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(3, stride=3))
-        # 759, 80
+        # 6823, 9
         self.conv3 = nn.Sequential(
-            nn.Conv1d(80, 160, kernel_size=3, stride=1, padding=0),
-            nn.BatchNorm1d(160),
+            nn.Conv1d(9, 3, kernel_size=3, stride=1),
+            nn.BatchNorm1d(3),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(3, stride=3))
-        # 253, 160
+        # 6823. 3
         self.conv4 = nn.Sequential(
-            nn.Conv1d(160, 160, kernel_size=3, stride=1, padding=2),
-            nn.BatchNorm1d(160),
+            nn.Conv1d(3, 1 kernel_size=3, stride=1, padding=2),
+            nn.BatchNorm1d(1),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(3, stride=3))
         # 85, 160
@@ -115,7 +123,7 @@ class Cnn1d(nn.Module):
             nn.Dropout(0.5)
         )
         # 1, 640
-        self.fc = nn.Linear(640, 80)
+        self.fc = nn.Linear(640, 7)
         self.activation = nn.Sigmoid()
 
     def forward(self, x):
@@ -160,7 +168,8 @@ optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 epoch = 0
 while epoch < num_epoches:
     for i in range(len(Xtrain)):
-        datas = Xtrain[i]
+        datas = Xtrain[80*i : 80*i + 80]
+        print(datas.shape)
         # datas = tuple(t.to(device) for t in Xtrain[i])
         label = Ytrain[i]
         if torch.cuda.is_available():
@@ -198,6 +207,9 @@ for i in range(len(Xtest)):
     if torch.cuda.is_available():
         datas = datas.cuda()
         label = label.cuda()
+
+    datas = torch.tensor(datas, dtype=torch.long)
+
     out = model(datas)
     out = torch.unsqueeze(out, 0)
 
