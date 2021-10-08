@@ -8,7 +8,6 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 
-
 def read_data(data="kaggle_data.xlsx", n = 0):
     resArray = []
     data = xlrd.open_workbook(data)
@@ -19,28 +18,53 @@ def read_data(data="kaggle_data.xlsx", n = 0):
     x = np.array(resArray)
     X = []
     y = []
+    i = 0
+    yy = 0
+    print(len(resArray))
+    while i < len(resArray):
+        bool = 0
+        onedata = []
+        for n in range(10):
+            if bool == 1:
+                i += 1
+                continue
+            elif i == 0:
+                yy += 1
+                onedata.append(list(resArray[i][:-1]))
+            elif resArray[i][-1] != resArray[i-1][-1]:
+                bool = 1
+            else:
+                onedata.append(list(resArray[i][:-1]))
+            i = i + 1
+            if i >= len(resArray):
+                bool = 1
+                break
 
-    for i in range(len(x)):
-        # for num in range(len(x[i][:-1])):
-        #     x[i][num] = float(x[i][num])
-        X.append(x[i][:-1])
-        y.append(int(x[i][-1]))
+        if bool == 0:
+            onedata = np.array(onedata)
+            print(onedata.shape)
+            onedata = np.transpose(onedata) # reshape (630, 10, 80): (N, L, C) to (N, C, L)
+            X.append(onedata)
+            y.append(resArray[i-1][-1])
 
+    print(yy)
     X = np.array(X)
     X = X.astype(float)
+    print(X.shape)
+    print(len(y))
 
     return X, y
 
 
-X, y = read_data()
+X, y = read_data("kaggle_data.xlsx")
 
 Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=420)
 
-print(X) # (6823, 80)
-print(y)
+print(X.shape)    # (630, 80, 10) N, C, L
+print(y)    # 630
 
 Xtrain = np.array(Xtrain)
-y = np.array(y) # (6823,)
+y = np.array(y) # (630,)
 
 Xtrain = np.concatenate(list(Xtrain)).astype(np.float32)
 Xtrain = torch.tensor(Xtrain)
@@ -64,16 +88,14 @@ class Cnn1d(nn.Module):
         # self.device = device
         # self.verbose = verbose
 
-        # input: (N, C in, L in) (6823, 1, 80)
+        # input: (N, C, L) (630, 80, 10)
 
-
-
-        # (6823, 1, 80)
+        # (630, 80, 10)
         self.conv1 = nn.Sequential(
-            nn.Conv1d(1, 3, kernel_size=3, stride=3, padding=1),
-            nn.BatchNorm1d(3),
+            nn.Conv1d(80, 240, kernel_size=3, stride=3, padding=1),
+            nn.BatchNorm1d(240),
             nn.ReLU(inplace=True))
-        # 6823, 27
+        # (630, 240, 10)
         self.conv2 = nn.Sequential(
             nn.Conv1d(27, 9, kernel_size=3, stride=1),
             nn.BatchNorm1d(9),
@@ -122,8 +144,8 @@ class Cnn1d(nn.Module):
             nn.ReLU(inplace=True),
             nn.Dropout(0.5)
         )
-        # 1, 640
-        self.fc = nn.Linear(640, 7)
+
+        self.fc = nn.Linear(1, 7)
         self.activation = nn.Sigmoid()
 
     def forward(self, x):
