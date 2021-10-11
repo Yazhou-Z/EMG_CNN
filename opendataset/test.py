@@ -58,6 +58,8 @@ def read_data(data="kaggle_data.xlsx", n = 0):
 
 X, y = read_data("kaggle_data.xlsx")
 
+X = torch.tensor(X)
+X_tensor = X.view(630, 80, 10)
 Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=420)
 
 print(X.shape)    # (630, 80, 10) N, C, L
@@ -74,7 +76,8 @@ y = np.array(y) # (630,)
 class Cnn1d(nn.Module):
 
     def __init__(self,
-                 in_size, out_channels,
+                 num_class = 7
+                 # in_size, out_channels,
                  # # n_len_seg,
                  # n_classes,
                  # # device,
@@ -92,96 +95,53 @@ class Cnn1d(nn.Module):
 
         # (630, 80, 10)
         self.conv1 = nn.Sequential(
-            nn.Conv1d(80, 240, kernel_size=3, stride=3, padding=1),
-            nn.BatchNorm1d(240),
-            nn.ReLU(inplace=True))
-        '''
-        # (630, 240, 10)
+            nn.Conv1d(80, 81, kernel_size=2, stride=1, padding=1), # 81, 10
+            nn.BatchNorm1d(81),
+            nn.ReLU(inplace=True),
+            nn.MaxPool1d(2, stride=2))  # 81, 5
+        # (630, 81, 5)
         self.conv2 = nn.Sequential(
-            nn.Conv1d(27, 9, kernel_size=3, stride=1),
+            nn.Conv1d(81, 27, kernel_size=3, stride=3),
+            nn.BatchNorm1d(27),
+            nn.ReLU(inplace=True),
+            nn.MaxPool1d(2, stride=1))  # 81, 4
+        # (630, 81, 4)
+        self.conv3 = nn.Sequential(
+            nn.Conv1d(27, 9, kernel_size=3, stride=3),  # 9, 4
             nn.BatchNorm1d(9),
             nn.ReLU(inplace=True),
-            nn.MaxPool1d(3, stride=3))
-        # 6823, 9
-        self.conv3 = nn.Sequential(
-            nn.Conv1d(9, 3, kernel_size=3, stride=1),
-            nn.BatchNorm1d(3),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(3, stride=3))
-        # 6823. 3
+            nn.MaxPool1d(2, stride=1))   # 9, 3
+        # (630, 9, 3)
         self.conv4 = nn.Sequential(
-            nn.Conv1d(3, 1 kernel_size=3, stride=1, padding=2),
-            nn.BatchNorm1d(1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(3, stride=3))
-        # 85, 160
-        self.conv5 = nn.Sequential(
-            nn.Conv1d(160, 320, kernel_size=3, stride=1, padding=2),
-            nn.BatchNorm1d(320),
-            nn.ReLU(),
-            nn.MaxPool1d(3, stride=3))
-        # 29, 320
-        self.conv6 = nn.Sequential(
-            nn.Conv1d(320, 320, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(320),
-            nn.ReLU(),
-            nn.MaxPool1d(3, stride=3))
-        # 10, 320
-        self.conv7 = nn.Sequential(
-            nn.Conv1d(320, 640, kernel_size=3, stride=1, padding=2),
-            nn.BatchNorm1d(640),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(3, stride=3)
-        )
-        # 4, 320
-        self.conv8 = nn.Sequential(
-            nn.Conv1d(320, 640, kernel_size=4, stride=1),
-            nn.BatchNorm1d(640),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(4, stride=4)
-        )
-        # 1, 640
-        self.conv9 = nn.Sequential(
             nn.ReLU(inplace=True),
             nn.Dropout(0.5)
         )
-        '''
-        '''
-        self.fc = nn.Linear(1, 7)
+        self.fc = nn.Linear(9 * 3, 7)
         self.activation = nn.Sigmoid()
-        '''
 
     def forward(self, x):
         # input x : 23 x 59049 x 1
         # expected conv1d input : minibatch_size x num_channel x width
 
-        # x = x.view(x.shape[0], 1, -1)
-        # x : 6823, 80
-
         out = self.conv1(x)
-        # out = self.conv2(out)
-        # out = self.conv3(out)
-        # out = self.conv4(out)
-        # out = self.conv5(out)
-        # out = self.conv6(out)
-        # out = self.conv7(out)
-        # out = self.conv8(out)
-        # out = self.conv9(out)
+        out = self.conv2(out)
+        out = self.conv3(out)
+        out = self.conv4(out)
 
         # out = out.view(x.shape[0], out.size(1) * out.size(2))
-        # logit = self.fc(out)
+        logit = self.fc(out)
 
-        # logit = self.activation(logit)
+        logit = self.activation(logit)
 
-        # return logit
-        return out
+        return logit
+        # return out
 
 
-# batch_size = 1
-# learning_rate = 0.0001
+batch_size = 1
+learning_rate = 0.0001
 num_epoches = 5
 
-# model = Cnn1d(80, 7)
+model = Cnn1d(7)
 
 # if torch.cuda.is_available():
 #     print('cuda')
@@ -193,17 +153,17 @@ num_epoches = 5
 # train
 epoch = 0
 while epoch < num_epoches:
-    for i in range(len(Xtrain)):
-        datas = Xtrain[80*i : 80*i + 80]
+    for i in range(len(X_tensor)):
+        datas = X_tensor[i]
         print(datas.shape)
-        # datas = tuple(t.to(device) for t in Xtrain[i])
+        # datas = tuple(t.to(device) for t in X_tensor[i])
         label = Ytrain[i]
         if torch.cuda.is_available():
             datas = datas.cuda()
             label = label.cuda()
 
         out = Cnn1d(datas)
-        print(out.size())
+        print(out)
 #         out = torch.unsqueeze(out, 0)
 
 #         label = torch.tensor(label, dtype=torch.long)
