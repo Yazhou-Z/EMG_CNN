@@ -159,35 +159,36 @@ class Cnn1d(nn.Module):
         # x : 6823, 80
 
         out = self.conv1(x)
-        out = self.conv2(out)
-        out = self.conv3(out)
-        out = self.conv4(out)
-        out = self.conv5(out)
-        out = self.conv6(out)
-        out = self.conv7(out)
-        out = self.conv8(out)
-        out = self.conv9(out)
+        # out = self.conv2(out)
+        # out = self.conv3(out)
+        # out = self.conv4(out)
+        # out = self.conv5(out)
+        # out = self.conv6(out)
+        # out = self.conv7(out)
+        # out = self.conv8(out)
+        # out = self.conv9(out)
 
-        out = out.view(x.shape[0], out.size(1) * out.size(2))
-        logit = self.fc(out)
+        # out = out.view(x.shape[0], out.size(1) * out.size(2))
+        # logit = self.fc(out)
 
         # logit = self.activation(logit)
 
-        return logit
+        # return logit
+        return out
 
 
-batch_size = 1
-learning_rate = 0.0001
-num_epoches = 50
+# batch_size = 1
+# learning_rate = 0.0001
+num_epoches = 5
 
-model = Cnn1d(80, 7)
+# model = Cnn1d(80, 7)
 
-if torch.cuda.is_available():
-    print('cuda')
-    model = model.cuda()
+# if torch.cuda.is_available():
+#     print('cuda')
+#     model = model.cuda()
 
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+# criterion = nn.CrossEntropyLoss()
+# optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 # train
 epoch = 0
@@ -201,53 +202,54 @@ while epoch < num_epoches:
             datas = datas.cuda()
             label = label.cuda()
 
-        out = model(datas)
-        out = torch.unsqueeze(out, 0)
+        out = Cnn1d(datas)
+        print(out.size())
+#         out = torch.unsqueeze(out, 0)
 
-        label = torch.tensor(label, dtype=torch.long)
-        label = torch.unsqueeze(label, 0)
+#         label = torch.tensor(label, dtype=torch.long)
+#         label = torch.unsqueeze(label, 0)
 
-        loss = torch.nn.CrossEntropyLoss()(out, label)
+#         loss = torch.nn.CrossEntropyLoss()(out, label)
 
-        data = [datas, label]
-        print_loss = loss.data.item()
+#         data = [datas, label]
+#         print_loss = loss.data.item()
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+#         optimizer.zero_grad()
+#         loss.backward()
+#         optimizer.step()
 
-        print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
+#         print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
 
-    epoch += 1
-    if epoch % 10 == 0:
-        print('epoch: {}, loss: {:.4}'.format(epoch, print_loss))
+#     epoch += 1
+#     if epoch % 10 == 0:
+#         print('epoch: {}, loss: {:.4}'.format(epoch, print_loss))
 
-# test
-model.eval()
-eval_loss = 0
-eval_acc = 0
-for i in range(len(Xtest)):
-    datas = Xtest[i]
-    label = Ytest[i]
-    if torch.cuda.is_available():
-        datas = datas.cuda()
-        label = label.cuda()
+# # test
+# model.eval()
+# eval_loss = 0
+# eval_acc = 0
+# for i in range(len(Xtest)):
+#     datas = Xtest[i]
+#     label = Ytest[i]
+#     if torch.cuda.is_available():
+#         datas = datas.cuda()
+#         label = label.cuda()
 
-    datas = torch.tensor(datas, dtype=torch.long)
+#     datas = torch.tensor(datas, dtype=torch.long)
 
-    out = model(datas)
-    out = torch.unsqueeze(out, 0)
+#     out = model(datas)
+#     out = torch.unsqueeze(out, 0)
 
-    label = torch.tensor(label, dtype=torch.long)
-    label = torch.unsqueeze(label, 0)
-    loss = torch.nn.CrossEntropyLoss()(out, label)
-    data = [datas, label]
+#     label = torch.tensor(label, dtype=torch.long)
+#     label = torch.unsqueeze(label, 0)
+#     loss = torch.nn.CrossEntropyLoss()(out, label)
+#     data = [datas, label]
 
-    eval_loss += loss*label.size(0)
-    _, pred = torch.max(out, 1)
-    num_correct = (pred == label).sum()
-    eval_acc += num_correct.item()
-print('Test Loss: {:.6f}, Acc: {:.6f}'.format(
-    eval_loss / (len(Xtest)),
-    eval_acc / (len(Xtest))
-))
+#     eval_loss += loss*label.size(0)
+#     _, pred = torch.max(out, 1)
+#     num_correct = (pred == label).sum()
+#     eval_acc += num_correct.item()
+# print('Test Loss: {:.6f}, Acc: {:.6f}'.format(
+#     eval_loss / (len(Xtest)),
+#     eval_acc / (len(Xtest))
+# ))
