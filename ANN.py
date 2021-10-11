@@ -126,6 +126,7 @@ while epoch < num_epoches:
 
         label = torch.tensor(label, dtype=torch.long)
         label = torch.unsqueeze(label, 0)
+        print("label size: ", label)
 
         loss = torch.nn.CrossEntropyLoss()(out, label)
 
