@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 
-def read_data(data="kaggle_data.xlsx", n = 0):
+def read_data(data="kaggle_data.xlsx"):
     resArray = []
     data = xlrd.open_workbook(data)
     table = data.sheet_by_index(0)
@@ -42,12 +42,12 @@ def read_data(data="kaggle_data.xlsx", n = 0):
 
         if bool == 0:
             onedata = np.array(onedata)
-            print(onedata.shape)
+            # print(onedata.shape)
             onedata = np.transpose(onedata) # reshape (630, 10, 80): (N, L, C) to (N, C, L)
             X.append(onedata)
-            y.append(resArray[i-1][-1])
+            y.append(resArray[i-1][-1] - 1)
 
-    print(yy)
+    # print(yy)
     X = np.array(X)
     X = X.astype(float)
     print(X.shape)
@@ -56,25 +56,22 @@ def read_data(data="kaggle_data.xlsx", n = 0):
     return X, y
 
 
-X, y = read_data("kaggle_data.xlsx")
+X, y = read_data()
 
+X = torch.tensor(X)
+y = torch.tensor(y)
+X_tensor = X.view(630, 80, 10)
+y = y.view(630, 1)
 Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=420)
 
-print(X.shape)    # (630, 80, 10) N, C, L
-print(y)    # 630
-
-# Xtrain = np.array(Xtrain)
-y = np.array(y) # (630,)
-
-# Xtrain = np.concatenate(list(Xtrain)).astype(np.float32)
-# Xtrain = torch.tensor(Xtrain)
-# print(Xtrain.shape)
-
+print(X.shape)    # torch.Size([630, 80, 10]) N, C, L
+print(y.shape)    # torch.Size([630, 1])
 
 class Cnn1d(nn.Module):
 
     def __init__(self,
-                 in_size, out_channels,
+                 num_class = 7
+                 # in_size, out_channels,
                  # # n_len_seg,
                  # n_classes,
                  # # device,
@@ -92,122 +89,84 @@ class Cnn1d(nn.Module):
 
         # (630, 80, 10)
         self.conv1 = nn.Sequential(
-            nn.Conv1d(80, 240, kernel_size=3, stride=3, padding=1),
-            nn.BatchNorm1d(240),
-            nn.ReLU(inplace=True))
-        '''
-        # (630, 240, 10)
+            nn.Conv1d(80, 81, kernel_size=2, stride=1, padding=1), # 81, 10
+            nn.BatchNorm1d(81),
+            nn.ReLU(),
+            nn.MaxPool1d(2, stride=2))  # 81, 5
+        # (630, 81, 5)
         self.conv2 = nn.Sequential(
-            nn.Conv1d(27, 9, kernel_size=3, stride=1),
-            nn.BatchNorm1d(9),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(3, stride=3))
-        # 6823, 9
+            nn.Conv1d(81, 27, kernel_size=2, stride=2, padding=1),
+            nn.BatchNorm1d(27),
+            nn.ReLU(),
+            nn.MaxPool1d(2, stride=1)
+        )  # 27, 2
         self.conv3 = nn.Sequential(
-            nn.Conv1d(9, 3, kernel_size=3, stride=1),
-            nn.BatchNorm1d(3),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(3, stride=3))
-        # 6823. 3
+            nn.Conv1d(27, 9, kernel_size=2, stride=2, padding=1),
+            nn.BatchNorm1d(9),
+            nn.ReLU())
+        # 9, 2
         self.conv4 = nn.Sequential(
-            nn.Conv1d(3, 1 kernel_size=3, stride=1, padding=2),
-            nn.BatchNorm1d(1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(3, stride=3))
-        # 85, 160
-        self.conv5 = nn.Sequential(
-            nn.Conv1d(160, 320, kernel_size=3, stride=1, padding=2),
-            nn.BatchNorm1d(320),
             nn.ReLU(),
-            nn.MaxPool1d(3, stride=3))
-        # 29, 320
-        self.conv6 = nn.Sequential(
-            nn.Conv1d(320, 320, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(320),
-            nn.ReLU(),
-            nn.MaxPool1d(3, stride=3))
-        # 10, 320
-        self.conv7 = nn.Sequential(
-            nn.Conv1d(320, 640, kernel_size=3, stride=1, padding=2),
-            nn.BatchNorm1d(640),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(3, stride=3)
-        )
-        # 4, 320
-        self.conv8 = nn.Sequential(
-            nn.Conv1d(320, 640, kernel_size=4, stride=1),
-            nn.BatchNorm1d(640),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(4, stride=4)
-        )
-        # 1, 640
-        self.conv9 = nn.Sequential(
-            nn.ReLU(inplace=True),
             nn.Dropout(0.5)
         )
-        '''
-        '''
-        self.fc = nn.Linear(1, 7)
+        self.fc = nn.Linear(18, 7)
         self.activation = nn.Sigmoid()
-        '''
 
     def forward(self, x):
-        # input x : 23 x 59049 x 1
-        # expected conv1d input : minibatch_size x num_channel x width
-
-        # x = x.view(x.shape[0], 1, -1)
-        # x : 6823, 80
-
+        # print("input: ", x.shape)   # torch.Size([1, 80, 10])
         out = self.conv1(x)
+        # print("conv1:", out.shape)  # torch.Size([1, 80, 10])
         out = self.conv2(out)
+        # print("conv2", out.shape)
         out = self.conv3(out)
+        # print("conv3", out.shape)
         out = self.conv4(out)
-        out = self.conv5(out)
-        out = self.conv6(out)
-        out = self.conv7(out)
-        out = self.conv8(out)
-        out = self.conv9(out)
-
+        # print("conv4", out.shape)
+        # out = out.view(out.size(0), -1)
         out = out.view(x.shape[0], out.size(1) * out.size(2))
         logit = self.fc(out)
 
-        # logit = self.activation(logit)
+        logit = self.activation(logit)
+        # print("fc:", logit.shape) # fc: torch.Size([1, 7])
 
         return logit
 
-
 batch_size = 1
 learning_rate = 0.0001
-num_epoches = 50
+num_epoches = 600
 
-model = Cnn1d(80, 7)
+model = Cnn1d(7)
 
-if torch.cuda.is_available():
-    print('cuda')
-    model = model.cuda()
+# if torch.cuda.is_available():
+#     print('cuda')
+#     model = model.cuda()
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 # train
-epoch = 0
+epoch = 1
 while epoch < num_epoches:
-    for i in range(len(Xtrain)):
-        datas = Xtrain[80*i : 80*i + 80]
-        print(datas.shape)
-        # datas = tuple(t.to(device) for t in Xtrain[i])
-        label = Ytrain[i]
-        if torch.cuda.is_available():
-            datas = datas.cuda()
-            label = label.cuda()
+    for i in range(len(X_tensor)):
+        datas = X_tensor[i]
+        datas = datas.to(torch.float32)
+        datas = datas.unsqueeze(0)
+        # print(datas.shape)  # torch.Size([1, 80, 10])
+        # if torch.cuda.is_available():
+        #     datas = datas.cuda()
+        #     label = label.cuda()
 
         out = model(datas)
         out = torch.unsqueeze(out, 0)
+        # print("out shape: ", out.shape)  # torch.Size([1, 1, 7])
+        # print(out[0].shape) # torch.Size([1, 7])
 
+        label = y[i]
         label = torch.tensor(label, dtype=torch.long)
-        label = torch.unsqueeze(label, 0)
+        # print("label: ", label.shape)  # torch.Size([1, 1])
 
-        loss = torch.nn.CrossEntropyLoss()(out, label)
+        # loss = criterion(out, label)
+        loss = torch.nn.CrossEntropyLoss()(out.squeeze(1), label)  # target 必须是1D
 
         data = [datas, label]
         print_loss = loss.data.item()
@@ -216,11 +175,12 @@ while epoch < num_epoches:
         loss.backward()
         optimizer.step()
 
-        print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
+        # print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
 
     epoch += 1
     if epoch % 10 == 0:
         print('epoch: {}, loss: {:.4}'.format(epoch, print_loss))
+
 
 # test
 model.eval()
@@ -228,21 +188,26 @@ eval_loss = 0
 eval_acc = 0
 for i in range(len(Xtest)):
     datas = Xtest[i]
-    label = Ytest[i]
-    if torch.cuda.is_available():
-        datas = datas.cuda()
-        label = label.cuda()
-
-    datas = torch.tensor(datas, dtype=torch.long)
+    datas = datas.to(torch.float32)
+    datas = datas.unsqueeze(0)
+    # print(datas.shape)  # torch.Size([1, 80, 10])
+    # if torch.cuda.is_available():
+    #     datas = datas.cuda()
+    #     label = label.cuda()
 
     out = model(datas)
     out = torch.unsqueeze(out, 0)
+    # print("out shape: ", out.shape)  # torch.Size([1, 1, 7])
+    # print(out[0].shape) # torch.Size([1, 7])
 
+    label = y[i]
     label = torch.tensor(label, dtype=torch.long)
-    label = torch.unsqueeze(label, 0)
-    loss = torch.nn.CrossEntropyLoss()(out, label)
-    data = [datas, label]
+    # print("label: ", label.shape)  # torch.Size([1, 1])
 
+    # loss = criterion(out, label)
+    loss = torch.nn.CrossEntropyLoss()(out.squeeze(1), label)  # target 必须是1D
+
+    data = [datas, label]
     eval_loss += loss*label.size(0)
     _, pred = torch.max(out, 1)
     num_correct = (pred == label).sum()
