@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 
-def read_data(data="/content/drive/MyDrive/WISE lab/test/opendataset/kaggle_data.xlsx", n = 0):
+def read_data(data="kaggle_data.xlsx"):
     resArray = []
     data = xlrd.open_workbook(data)
     table = data.sheet_by_index(0)
@@ -178,8 +178,8 @@ while epoch < num_epoches:
         print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
 
     epoch += 1
-    if epoch % 10 == 0:
-        print('epoch: {}, loss: {:.4}'.format(epoch, print_loss))
+    # if epoch % 10 == 0:
+    #     print('epoch: {}, loss: {:.4}'.format(epoch, print_loss))
 
 
 # # test
