@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 
-def read_data(data="kaggle_data.xlsx", n = 0):
+def read_data(data="/content/drive/MyDrive/WISE lab/test/opendataset/kaggle_data.xlsx", n = 0):
     resArray = []
     data = xlrd.open_workbook(data)
     table = data.sheet_by_index(0)
@@ -20,7 +20,7 @@ def read_data(data="kaggle_data.xlsx", n = 0):
     y = []
     i = 0
     yy = 0
-    # print(len(resArray))
+    print(len(resArray))
     while i < len(resArray):
         bool = 0
         onedata = []
@@ -42,7 +42,7 @@ def read_data(data="kaggle_data.xlsx", n = 0):
 
         if bool == 0:
             onedata = np.array(onedata)
-            print(onedata.shape)
+            # print(onedata.shape)
             onedata = np.transpose(onedata) # reshape (630, 10, 80): (N, L, C) to (N, C, L)
             X.append(onedata)
             y.append(resArray[i-1][-1])
@@ -50,13 +50,13 @@ def read_data(data="kaggle_data.xlsx", n = 0):
     # print(yy)
     X = np.array(X)
     X = X.astype(float)
-    # print(X.shape)
-    # print(len(y))
+    print(X.shape)
+    print(len(y))
 
     return X, y
 
 
-X, y = read_data("kaggle_data.xlsx")
+X, y = read_data()
 
 X = torch.tensor(X)
 y = torch.tensor(y)
@@ -66,12 +66,6 @@ y = y.view(630, 1)
 
 print(X.shape)    # torch.Size([630, 80, 10]) N, C, L
 print(y.shape)    # torch.Size([630, 1])
-
-# Xtrain = np.array(Xtrain)
-# Xtrain = np.concatenate(list(Xtrain)).astype(np.float32)
-# Xtrain = torch.tensor(Xtrain)
-# print(Xtrain.shape)
-
 
 class Cnn1d(nn.Module):
 
@@ -97,47 +91,45 @@ class Cnn1d(nn.Module):
         self.conv1 = nn.Sequential(
             nn.Conv1d(80, 81, kernel_size=2, stride=1, padding=1), # 81, 10
             nn.BatchNorm1d(81),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.MaxPool1d(2, stride=2))  # 81, 5
         # (630, 81, 5)
         self.conv2 = nn.Sequential(
             nn.Conv1d(81, 27, kernel_size=2, stride=2, padding=1),
             nn.BatchNorm1d(27),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.MaxPool1d(2, stride=1)
         )  # 27, 2
         self.conv3 = nn.Sequential(
             nn.Conv1d(27, 9, kernel_size=2, stride=2, padding=1),
             nn.BatchNorm1d(9),
-            nn.ReLU(inplace=True))
+            nn.ReLU())
         # 9, 2
         self.conv4 = nn.Sequential(
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Dropout(0.5)
         )
         self.fc = nn.Linear(18, 7)
         self.activation = nn.Sigmoid()
 
     def forward(self, x):
-        print("input: ", x.shape)   # torch.Size([1, 80, 10])
+        # print("input: ", x.shape)   # torch.Size([1, 80, 10])
         out = self.conv1(x)
-        print("conv1:", out.shape)  # torch.Size([1, 80, 10])
+        # print("conv1:", out.shape)  # torch.Size([1, 80, 10])
         out = self.conv2(out)
-        print("conv2", out.shape)
+        # print("conv2", out.shape)
         out = self.conv3(out)
-        print("conv3", out.shape)
+        # print("conv3", out.shape)
         out = self.conv4(out)
-        print("conv4", out.shape)
+        # print("conv4", out.shape)
         # out = out.view(out.size(0), -1)
         out = out.view(x.shape[0], out.size(1) * out.size(2))
         logit = self.fc(out)
 
         logit = self.activation(logit)
-        print("fc:", logit.shape)
+        # print("fc:", logit.shape) # fc: torch.Size([1, 7])
 
         return logit
-        # return out
-
 
 batch_size = 1
 learning_rate = 0.0001
@@ -160,23 +152,21 @@ while epoch < num_epoches:
         datas = datas.to(torch.float32)
         datas = datas.unsqueeze(0)
         print(datas.shape)  # torch.Size([1, 80, 10])
-        if torch.cuda.is_available():
-            datas = datas.cuda()
-            label = label.cuda()
+        # if torch.cuda.is_available():
+        #     datas = datas.cuda()
+        #     label = label.cuda()
 
         out = model(datas)
-        print(out)
         out = torch.unsqueeze(out, 0)
+        print("out shape: ", out.shape)  # torch.Size([1, 1, 7])
+        # print(out[0].shape) # torch.Size([1, 7])
 
         label = y[i]
-        # label = label.view(7, 1)
-        print(label.shape)  # torch.Size([1])
         label = torch.tensor(label, dtype=torch.long)
-        label = torch.unsqueeze(label,1)
-        print("label: ", label.shape)  # torch.Size([1])
+        print("label: ", label.shape)  # torch.Size([1, 1])
 
         # loss = criterion(out, label)
-        loss = torch.nn.CrossEntropyLoss()(out, label)
+        loss = torch.nn.CrossEntropyLoss()(out.squeeze(1), label)  # target 必须是1D
 
         data = [datas, label]
         print_loss = loss.data.item()
@@ -190,6 +180,7 @@ while epoch < num_epoches:
     epoch += 1
     if epoch % 10 == 0:
         print('epoch: {}, loss: {:.4}'.format(epoch, print_loss))
+
 
 # # test
 # model.eval()
