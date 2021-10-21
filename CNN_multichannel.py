@@ -185,6 +185,7 @@ while epoch < num_epoches:
 
     epoch += 1
 
+    # TODO: check the accuracy algorithm
     # calculate accuracy
     acc = train_acc / len(X_tensor)
     tr_acc.append(acc)
