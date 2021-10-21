@@ -6,7 +6,7 @@ import torch
 from torch import nn, optim
 import torch.nn.functional as F
 from torch.autograd import Variable
-
+import matplotlib.pyplot as plt
 
 def read_data(data="kaggle_data.xlsx"):
     resArray = []
@@ -131,9 +131,9 @@ class Cnn1d(nn.Module):
 
         return logit
 
-batch_size = 1
-learning_rate = 0.0001
-num_epoches = 600
+batch_size = 2
+learning_rate = 0.00000001
+num_epoches = 20
 
 model = Cnn1d(7)
 
@@ -144,9 +144,12 @@ model = Cnn1d(7)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
+loss_curve = []
+tr_acc = []
 # train
 epoch = 1
 while epoch < num_epoches:
+    train_acc = 0
     for i in range(len(X_tensor)):
         datas = X_tensor[i]
         datas = datas.to(torch.float32)
@@ -175,12 +178,27 @@ while epoch < num_epoches:
         loss.backward()
         optimizer.step()
 
+        _, pred = torch.max(out, 1)
+        train_acc += (pred == label).float().mean()
+
         # print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
 
     epoch += 1
-    if epoch % 10 == 0:
-        print('epoch: {}, loss: {:.4}'.format(epoch, print_loss))
 
+    # calculate accuracy
+    acc = train_acc / len(X_tensor)
+    tr_acc.append(acc)
+
+    loss_curve.append(print_loss)
+
+    if epoch % 10 == 0:
+        print('epoch: {}, loss: {:.4}, acc: {:.4}'.format(epoch, print_loss, acc))
+
+plt.plot(loss_curve)
+plt.show()
+
+plt.plot(tr_acc)
+plt.show()
 
 # test
 model.eval()
@@ -211,24 +229,24 @@ for i in range(len(Xtest)):
     loss = torch.nn.CrossEntropyLoss()(out.squeeze(1), label)  # target 必须是1D
 
     eval_loss += loss*label.size(0)
-     
-    _, pred = torch.max(out)
-    total += label.size(0)
-    correct += pred.eq(label).sum().item()
-    
+
+    _, pred = torch.max(out, 1)
+    correct += (pred == label).float().mean()
+    # print("Current: ", correct)
+    # correct += torch.sum(out == label)
+
 train_loss = eval_loss/len(Xtest)
-accu = 100.*correct/total
+accu = correct/len(Xtest)
    
 #   train_accu.append(accu)
 #   train_losses.append(train_loss)
 #   print('Train Loss: %.3f | Accuracy: %.3f'%(train_loss,accu))
 
-
 #     eval_loss += loss*label.size(0)
 #     _, pred = torch.max(out)
 #     num_correct = (pred == label).sum()
 #     eval_acc += num_correct.item()
-print('Train Loss: %.3f | Accuracy: %.3f'%(train_loss,accu))
+print('Train Loss: %.3f | Accuracy: %.3f'%(train_loss, accu))
 
 # print('Test Loss: {:.6f}, Acc: {:.6f}'.format(
 #     eval_loss / (len(Xtest)),
