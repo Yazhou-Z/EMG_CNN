@@ -186,6 +186,9 @@ while epoch < num_epoches:
 model.eval()
 eval_loss = 0
 eval_acc = 0
+correct = 0
+total = 0
+
 for i in range(len(Xtest)):
     datas = Xtest[i]
     datas = datas.to(torch.float32)
@@ -207,12 +210,28 @@ for i in range(len(Xtest)):
     # loss = criterion(out, label)
     loss = torch.nn.CrossEntropyLoss()(out.squeeze(1), label)  # target 必须是1D
 
-    data = [datas, label]
     eval_loss += loss*label.size(0)
-    _, pred = torch.max(out, 1)
-    num_correct = (pred == label).sum()
-    eval_acc += num_correct.item()
-print('Test Loss: {:.6f}, Acc: {:.6f}'.format(
-    eval_loss / (len(Xtest)),
-    eval_acc / (len(Xtest))
-))
+     
+    _, pred = torch.max(out)
+    total += label.size(0)
+    correct += pred.eq(label).sum().item()
+    
+train_loss = eval_loss/len(Xtest)
+accu = 100.*correct/total
+   
+#   train_accu.append(accu)
+#   train_losses.append(train_loss)
+#   print('Train Loss: %.3f | Accuracy: %.3f'%(train_loss,accu))
+
+
+#     eval_loss += loss*label.size(0)
+#     _, pred = torch.max(out)
+#     num_correct = (pred == label).sum()
+#     eval_acc += num_correct.item()
+print('Train Loss: %.3f | Accuracy: %.3f'%(train_loss,accu))
+
+# print('Test Loss: {:.6f}, Acc: {:.6f}'.format(
+#     eval_loss / (len(Xtest)),
+#     eval_acc / (len(Xtest))
+#     )
+# )
