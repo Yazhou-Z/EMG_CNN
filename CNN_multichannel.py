@@ -179,7 +179,9 @@ while epoch < num_epoches:
         optimizer.step()
 
         _, pred = torch.max(out, 1)
-        train_acc += (pred == label).float().mean()
+        # print(pred.argmax(dim=1))
+        # print(label)
+        train_acc += (pred.argmax(dim=1) == label).float().mean()
 
         # print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
 
