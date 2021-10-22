@@ -133,7 +133,7 @@ class Cnn1d(nn.Module):
 
 batch_size = 2
 learning_rate = 0.00000001
-num_epoches = 20
+num_epoches = 10
 
 model = Cnn1d(7)
 
@@ -178,10 +178,11 @@ while epoch < num_epoches:
         loss.backward()
         optimizer.step()
 
-        _, pred = torch.max(out, 1)
-        # print(pred.argmax(dim=1))
+        _, pred = torch.max(out, 0)
+        # if (pred.argmax(dim=1) != tensor([1])):
+        #   print("DIFFERENT!!!")
         # print(label)
-        train_acc += (pred.argmax(dim=1) == label).float().mean()
+        train_acc += (pred + 1 == label).float().mean()
 
         # print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
 
