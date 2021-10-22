@@ -21,7 +21,7 @@ def read_data(data="kaggle_data.xlsx"):
     i = 0
     yy = 0
     print(len(resArray))
-    while i < len(resArray):
+    while i < 300:
         bool = 0
         onedata = []
         for n in range(10):
@@ -58,10 +58,20 @@ def read_data(data="kaggle_data.xlsx"):
 
 X, y = read_data()
 
+'''
+Minimize the training size
+'''
+
+# X = X[30]
+
+'''
+Minimize the training size
+'''
+
 X = torch.tensor(X)
 y = torch.tensor(y)
-X_tensor = X.view(630, 80, 10)
-y = y.view(630, 1)
+X_tensor = X.view(30, 80, 10)
+y = y.view(30, 1)
 Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=420)
 
 print(X.shape)    # torch.Size([630, 80, 10]) N, C, L
@@ -133,7 +143,7 @@ class Cnn1d(nn.Module):
 
 batch_size = 2
 learning_rate = 1e-4
-num_epoches = 20000
+num_epoches = 100
 
 model = Cnn1d(7)
 
@@ -179,8 +189,8 @@ while epoch < num_epoches:
 
         _, pred = torch.max(out, 2)
 
-        # if random.uniform(0, 1) < 0.01:
-        #   print(out, '->', pred, ':', label - 1, loss)
+        if random.uniform(0, 1) < 0.01:
+          print(out, '->', pred, ':', label, loss)
 
         # print(pred)
         train_acc += (pred + 1 == label).float().mean()
