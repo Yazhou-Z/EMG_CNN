@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
 
+
 def read_data(data="kaggle_data.xlsx"):
     resArray = []
     data = xlrd.open_workbook(data)
@@ -21,7 +22,7 @@ def read_data(data="kaggle_data.xlsx"):
     i = 0
     yy = 0
     print(len(resArray))
-    while i < 300:
+    while i < len(resArray):
         bool = 0
         onedata = []
         for n in range(10):
@@ -31,7 +32,7 @@ def read_data(data="kaggle_data.xlsx"):
             elif i == 0:
                 yy += 1
                 onedata.append(list(resArray[i][:-1]))
-            elif resArray[i][-1] != resArray[i-1][-1]:
+            elif resArray[i][-1] != resArray[i - 1][-1]:
                 bool = 1
             else:
                 onedata.append(list(resArray[i][:-1]))
@@ -43,9 +44,9 @@ def read_data(data="kaggle_data.xlsx"):
         if bool == 0:
             onedata = np.array(onedata)
             # print(onedata.shape)
-            onedata = np.transpose(onedata) # reshape (630, 10, 80): (N, L, C) to (N, C, L)
+            onedata = np.transpose(onedata)  # reshape (630, 10, 80): (N, L, C) to (N, C, L)
             X.append(onedata)
-            y.append(resArray[i-1][-1] - 1)
+            y.append(resArray[i - 1][-1] - 1)
 
     # print(yy)
     X = np.array(X)
@@ -58,29 +59,20 @@ def read_data(data="kaggle_data.xlsx"):
 
 X, y = read_data()
 
-'''
-Minimize the training size
-'''
-
-# X = X[30]
-
-'''
-Minimize the training size
-'''
-
 X = torch.tensor(X)
 y = torch.tensor(y)
-X_tensor = X.view(30, 80, 10)
-y = y.view(30, 1)
+X_tensor = X.view(630, 80, 10)
+y = y.view(630, 1)
 Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=420)
 
-print(X.shape)    # torch.Size([630, 80, 10]) N, C, L
-print(y.shape)    # torch.Size([630, 1])
+print(X.shape)  # torch.Size([630, 80, 10]) N, C, L
+print(y.shape)  # torch.Size([630, 1])
+
 
 class Cnn1d(nn.Module):
 
     def __init__(self,
-                 num_class = 7
+                 num_class=7
                  # in_size, out_channels,
                  # # n_len_seg,
                  # n_classes,
@@ -99,7 +91,7 @@ class Cnn1d(nn.Module):
 
         # (630, 80, 10)
         self.conv1 = nn.Sequential(
-            nn.Conv1d(80, 81, kernel_size=2, stride=1, padding=1), # 81, 10
+            nn.Conv1d(80, 81, kernel_size=2, stride=1, padding=1),  # 81, 10
             nn.BatchNorm1d(81),
             nn.ReLU(),
             nn.MaxPool1d(2, stride=2))  # 81, 5
@@ -141,9 +133,10 @@ class Cnn1d(nn.Module):
 
         return logit
 
+
 batch_size = 2
-learning_rate = 1e-4
-num_epoches = 100
+learning_rate = 1e-5
+num_epoches = 2
 
 model = Cnn1d(7)
 
@@ -154,7 +147,7 @@ model = Cnn1d(7)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
-import random
+# import random
 
 loss_curve = []
 tr_acc = []
@@ -178,7 +171,7 @@ while epoch < num_epoches:
         label = torch.tensor(label, dtype=torch.long)
         # print("label: ", label.shape)  # torch.Size([1, 1])
         # loss = criterion(out, label)
-        loss = torch.nn.CrossEntropyLoss()(out[0], label)   # target 必须是1D
+        loss = torch.nn.CrossEntropyLoss()(out[0], label)  # target 必须是1D
         data = [datas, label]
         print_loss = loss.data.item()
         optimizer.zero_grad()
@@ -188,10 +181,9 @@ while epoch < num_epoches:
         assert torch.all(out > 0), f"not all in {out} > 0"
 
         _, pred = torch.max(out, 2)
-
-        if random.uniform(0, 1) < 0.01:
-          print(out, '->', pred, ':', label, loss)
-
+        print(label)
+        # if random.uniform(0, 1) < 0.01:
+        #   print(out, '->', pred, ':', label - 1, loss)
         # print(pred)
         train_acc += (pred + 1 == label).float().mean()
 
@@ -208,12 +200,15 @@ while epoch < num_epoches:
 
     if epoch % 10 == 0:
         print('epoch: {}, loss: {:.4}, acc: {:.4}'.format(epoch, print_loss, acc))
+        print(out, '->', pred, ':', label - 1, loss)
 
 plt.plot(loss_curve)
 plt.show()
+plt.savefig('loss_20000.png')
 
 plt.plot(tr_acc)
 plt.show()
+plt.savefig('accuracy_20000.png')
 
 # test
 model.eval()
@@ -243,16 +238,16 @@ for i in range(len(Xtest)):
     # loss = criterion(out, label)
     loss = torch.nn.CrossEntropyLoss()(out.squeeze(1), label)  # target 必须是1D
 
-    eval_loss += loss*label.size(0)
+    eval_loss += loss * label.size(0)
 
     _, pred = torch.max(out, 2)
     correct += (pred == label).float().mean()
     # print("Current: ", correct)
     # correct += torch.sum(out == label)
 
-train_loss = eval_loss/len(Xtest)
-accu = correct/len(Xtest)
-   
+train_loss = eval_loss / len(Xtest)
+accu = correct / len(Xtest)
+
 #   train_accu.append(accu)
 #   train_losses.append(train_loss)
 #   print('Train Loss: %.3f | Accuracy: %.3f'%(train_loss,accu))
@@ -261,7 +256,7 @@ accu = correct/len(Xtest)
 #     _, pred = torch.max(out)
 #     num_correct = (pred == label).sum()
 #     eval_acc += num_correct.item()
-print('Train Loss: %.3f | Accuracy: %.3f'%(train_loss, accu))
+print('Train Loss: %.3f | Accuracy: %.3f' % (train_loss, accu))
 
 # print('Test Loss: {:.6f}, Acc: {:.6f}'.format(
 #     eval_loss / (len(Xtest)),

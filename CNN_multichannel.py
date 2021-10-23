@@ -132,7 +132,7 @@ class Cnn1d(nn.Module):
         return logit
 
 batch_size = 2
-learning_rate = 1e-4
+learning_rate = 1e-5
 num_epoches = 20000
 
 model = Cnn1d(7)
@@ -144,7 +144,7 @@ model = Cnn1d(7)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
-import random
+# import random
 
 loss_curve = []
 tr_acc = []
@@ -168,7 +168,7 @@ while epoch < num_epoches:
         label = torch.tensor(label, dtype=torch.long)
         # print("label: ", label.shape)  # torch.Size([1, 1])
         # loss = criterion(out, label)
-        loss = torch.nn.CrossEntropyLoss()(out[0], label)   # target 必须是1D
+        loss = torch.nn.CrossEntropyLoss()(out[0], label)  # target 必须是1D
         data = [datas, label]
         print_loss = loss.data.item()
         optimizer.zero_grad()
@@ -178,10 +178,9 @@ while epoch < num_epoches:
         assert torch.all(out > 0), f"not all in {out} > 0"
 
         _, pred = torch.max(out, 2)
-
+        print(label)
         # if random.uniform(0, 1) < 0.01:
         #   print(out, '->', pred, ':', label - 1, loss)
-
         # print(pred)
         train_acc += (pred + 1 == label).float().mean()
 
@@ -198,12 +197,15 @@ while epoch < num_epoches:
 
     if epoch % 10 == 0:
         print('epoch: {}, loss: {:.4}, acc: {:.4}'.format(epoch, print_loss, acc))
+        print(out, '->', pred, ':', label - 1, loss)
 
 plt.plot(loss_curve)
 plt.show()
+plt.savefig('loss_20000.png')
 
 plt.plot(tr_acc)
 plt.show()
+plt.savefig('accuracy_20000.png')
 
 # test
 model.eval()
