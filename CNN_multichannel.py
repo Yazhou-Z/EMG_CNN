@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
 
-def read_data(data="kaggle_data.xlsx"):
+def read_data(data="kaggle_data.xlsx", n = 0):
     resArray = []
     data = xlrd.open_workbook(data)
     table = data.sheet_by_index(0)
@@ -45,7 +45,7 @@ def read_data(data="kaggle_data.xlsx"):
             # print(onedata.shape)
             onedata = np.transpose(onedata) # reshape (630, 10, 80): (N, L, C) to (N, C, L)
             X.append(onedata)
-            y.append(resArray[i-1][-1] - 1)
+            y.append(resArray[i-1][-1])
 
     # print(yy)
     X = np.array(X)
@@ -168,7 +168,7 @@ while epoch < num_epoches:
         label = torch.tensor(label, dtype=torch.long)
         # print("label: ", label.shape)  # torch.Size([1, 1])
         # loss = criterion(out, label)
-        loss = torch.nn.CrossEntropyLoss()(out[0], label)  # target 必须是1D
+        loss = torch.nn.CrossEntropyLoss()(out[0], label - 1)  # target 必须是1D
         data = [datas, label]
         print_loss = loss.data.item()
         optimizer.zero_grad()
@@ -178,7 +178,7 @@ while epoch < num_epoches:
         assert torch.all(out > 0), f"not all in {out} > 0"
 
         _, pred = torch.max(out, 2)
-        print(label)
+        # print(label)
         # if random.uniform(0, 1) < 0.01:
         #   print(out, '->', pred, ':', label - 1, loss)
         # print(pred)
