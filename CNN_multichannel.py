@@ -133,7 +133,7 @@ class Cnn1d(nn.Module):
 
 batch_size = 2
 learning_rate = 1e-5
-num_epoches = 20000
+num_epoches = 40000
 
 model = Cnn1d(7)
 
@@ -201,11 +201,11 @@ while epoch < num_epoches:
 
 plt.plot(loss_curve)
 plt.show()
-plt.savefig('loss_20000.png')
+plt.savefig('loss_40000.png')
 
 plt.plot(tr_acc)
 plt.show()
-plt.savefig('accuracy_20000.png')
+plt.savefig('accuracy_40000.png')
 
 # test
 model.eval()
@@ -238,7 +238,7 @@ for i in range(len(Xtest)):
     eval_loss += loss*label.size(0)
 
     _, pred = torch.max(out, 2)
-    correct += (pred == label).float().mean()
+    correct += (pred + 1 == label).float().mean()
     # print("Current: ", correct)
     # correct += torch.sum(out == label)
 
