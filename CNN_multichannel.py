@@ -188,7 +188,6 @@ while epoch < num_epoches:
 
     epoch += 1
 
-    # TODO: check the accuracy algorithm
     # calculate accuracy
     acc = train_acc / len(X_tensor)
     tr_acc.append(acc)
@@ -200,12 +199,12 @@ while epoch < num_epoches:
         print(out, '->', pred, ':', label - 1, loss)
 
 plt.plot(loss_curve)
-plt.show()
 plt.savefig('loss_40000.png')
+plt.show()
 
 plt.plot(tr_acc)
-plt.show()
 plt.savefig('accuracy_40000.png')
+plt.show()
 
 # test
 model.eval()
