@@ -7,6 +7,8 @@ from torch import nn, optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
+import shutil
+
 
 def read_data(data="kaggle_data.xlsx", n = 0):
     resArray = []
@@ -55,6 +57,24 @@ def read_data(data="kaggle_data.xlsx", n = 0):
 
     return X, y
 
+'''
+# https://towardsdatascience.com/how-to-save-and-load-a-model-in-pytorch-with-a-complete-example-c2920e617dee
+def save_ckp(state, is_best, checkpoint_path, best_model_path):
+    """
+    state: checkpoint we want to save
+    is_best: is this the best checkpoint; min validation loss
+    checkpoint_path: path to save checkpoint
+    best_model_path: path to save best model
+    """
+    f_path = checkpoint_path
+    # save checkpoint data to the path given, checkpoint_path
+    torch.save(state, f_path)
+    # if it is a best model, min validation loss
+    if is_best:
+        best_fpath = best_model_path
+        # copy that checkpoint file to best path given, best_model_path
+        shutil.copyfile(f_path, best_fpath)
+'''
 
 X, y = read_data()
 
@@ -132,7 +152,7 @@ class Cnn1d(nn.Module):
         return logit
 
 batch_size = 2
-learning_rate = 1e-5
+learning_rate = 1e-6
 num_epoches = 40000
 
 model = Cnn1d(7)
@@ -148,6 +168,7 @@ optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 loss_curve = []
 tr_acc = []
+valid_loss_min = 2
 # train
 epoch = 1
 while epoch < num_epoches:
@@ -186,8 +207,6 @@ while epoch < num_epoches:
 
         # print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
 
-    epoch += 1
-
     # calculate accuracy
     acc = train_acc / len(X_tensor)
     tr_acc.append(acc)
@@ -198,19 +217,39 @@ while epoch < num_epoches:
         print('epoch: {}, loss: {:.4}, acc: {:.4}'.format(epoch, print_loss, acc))
         print(out, '->', pred, ':', label - 1, loss)
 
+        # create checkpoint variable and add important data
+        checkpoint = {
+            'epoch': epoch + 1,
+            'valid_loss_min': print_loss,
+            'state_dict': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+        }
+
+        if print_loss <= valid_loss_min:
+            print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(valid_loss_min, print_loss))
+            # save checkpoint as best model
+            torch.save(model.state_dict(), 'model_best')
+            valid_loss_min = print_loss
+
+    epoch += 1
+
 plt.plot(loss_curve)
-plt.savefig('loss_40000.png')
+fig2 = plt.gcf()
 plt.show()
+plt.draw()
+fig2.savefig('loss_40000.png')
 
 plt.plot(tr_acc)
-plt.savefig('accuracy_40000.png')
+fig1 = plt.gcf()
 plt.show()
+plt.draw()
+fig1.savefig('accuracy_40000.png')
 
 # test
 model.eval()
 eval_loss = 0
 eval_acc = 0
-correct = 0
+test_acc = 0
 total = 0
 
 for i in range(len(Xtest)):
@@ -227,22 +266,22 @@ for i in range(len(Xtest)):
     # print("out shape: ", out.shape)  # torch.Size([1, 1, 7])
     # print(out[0].shape) # torch.Size([1, 7])
 
-    label = y[i]
+    label = Ytest[i]
     label = torch.tensor(label, dtype=torch.long)
     # print("label: ", label.shape)  # torch.Size([1, 1])
 
     # loss = criterion(out, label)
-    loss = torch.nn.CrossEntropyLoss()(out.squeeze(1), label)  # target 必须是1D
+    loss = torch.nn.CrossEntropyLoss()(out[0], label - 1)  # target 必须是1D
 
     eval_loss += loss*label.size(0)
 
     _, pred = torch.max(out, 2)
-    correct += (pred + 1 == label).float().mean()
+    test_acc += (pred + 1 == label).float().mean()
     # print("Current: ", correct)
     # correct += torch.sum(out == label)
 
 train_loss = eval_loss/len(Xtest)
-accu = correct/len(Xtest)
+accu = test_acc/len(Xtest)
    
 #   train_accu.append(accu)
 #   train_losses.append(train_loss)
