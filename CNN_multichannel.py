@@ -152,8 +152,9 @@ class Cnn1d(nn.Module):
         return logit
 
 batch_size = 2
-learning_rate = 1e-6
+learning_rate = 8e-5
 num_epoches = 40000
+valid_loss_min = 2
 
 model = Cnn1d(7)
 
@@ -168,9 +169,8 @@ optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 loss_curve = []
 tr_acc = []
-valid_loss_min = 2
 # train
-epoch = 1
+epoch = 0
 while epoch < num_epoches:
     train_acc = 0
     for i in range(len(X_tensor)):
@@ -207,6 +207,8 @@ while epoch < num_epoches:
 
         # print('epoch: {}, loss: {:.4}'.format(epoch, print_loss), 'step: ', i + 1)
 
+    epoch += 1
+
     # calculate accuracy
     acc = train_acc / len(X_tensor)
     tr_acc.append(acc)
@@ -215,7 +217,7 @@ while epoch < num_epoches:
 
     if epoch % 10 == 0:
         print('epoch: {}, loss: {:.4}, acc: {:.4}'.format(epoch, print_loss, acc))
-        print(out, '->', pred, ':', label - 1, loss)
+        # print(out, '->', pred, ':', label - 1, loss)
 
         # create checkpoint variable and add important data
         checkpoint = {
@@ -231,7 +233,6 @@ while epoch < num_epoches:
             torch.save(model.state_dict(), 'model_best')
             valid_loss_min = print_loss
 
-    epoch += 1
 
 plt.plot(loss_curve)
 fig2 = plt.gcf()
