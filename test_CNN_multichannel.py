@@ -263,3 +263,8 @@ print('Train Loss: %.3f | Accuracy: %.3f' % (train_loss, accu))
 #     eval_acc / (len(Xtest))
 #     )
 # )
+
+# load data
+model = torch.load('whole_model.pth')
+model.eval()
+

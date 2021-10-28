@@ -82,6 +82,7 @@ X = torch.tensor(X)
 y = torch.tensor(y)
 X_tensor = X.view(630, 80, 10)
 y = y.view(630, 1)
+
 Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.3, random_state=420)
 
 print(X.shape)    # torch.Size([630, 80, 10]) N, C, L
@@ -152,15 +153,15 @@ class Cnn1d(nn.Module):
         return logit
 
 batch_size = 2
-learning_rate = 8e-5
+learning_rate = 1e-4
 num_epoches = 40000
 valid_loss_min = 2
 
 model = Cnn1d(7)
 
-# if torch.cuda.is_available():
-#     print('cuda')
-#     model = model.cuda()
+if torch.cuda.is_available():
+    print('cuda')
+    model = model.cuda()
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
@@ -178,9 +179,9 @@ while epoch < num_epoches:
         datas = datas.to(torch.float32)
         datas = datas.unsqueeze(0)
         # print(datas.shape)  # torch.Size([1, 80, 10])
-        # if torch.cuda.is_available():
-        #     datas = datas.cuda()
-        #     label = label.cuda()
+        if torch.cuda.is_available():
+            datas = datas.cuda()
+            label = label.cuda()
         out = model(datas)
         out = torch.unsqueeze(out, 0)
         # print("out shape: ", out.shape)  # torch.Size([1, 1, 7])
@@ -190,8 +191,9 @@ while epoch < num_epoches:
         # print("label: ", label.shape)  # torch.Size([1, 1])
         # loss = criterion(out, label)
         loss = torch.nn.CrossEntropyLoss()(out[0], label - 1)  # target 必须是1D
-        data = [datas, label]
+        # data = [datas, label]
         print_loss = loss.data.item()
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -246,6 +248,8 @@ plt.show()
 plt.draw()
 fig1.savefig('accuracy_40000.png')
 
+torch.save(model, 'whole_model.pth')
+
 # test
 model.eval()
 eval_loss = 0
@@ -258,9 +262,9 @@ for i in range(len(Xtest)):
     datas = datas.to(torch.float32)
     datas = datas.unsqueeze(0)
     # print(datas.shape)  # torch.Size([1, 80, 10])
-    # if torch.cuda.is_available():
-    #     datas = datas.cuda()
-    #     label = label.cuda()
+    if torch.cuda.is_available():
+        datas = datas.cuda()
+        label = label.cuda()
 
     out = model(datas)
     out = torch.unsqueeze(out, 0)
@@ -283,7 +287,7 @@ for i in range(len(Xtest)):
 
 train_loss = eval_loss/len(Xtest)
 accu = test_acc/len(Xtest)
-   
+
 #   train_accu.append(accu)
 #   train_losses.append(train_loss)
 #   print('Train Loss: %.3f | Accuracy: %.3f'%(train_loss,accu))
