@@ -229,7 +229,7 @@ while epoch < num_epoches:
             'optimizer': optimizer.state_dict(),
         }
 
-        if print_loss < valid_loss_min:
+        if print_loss <= valid_loss_min:
             print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(valid_loss_min, print_loss))
             # save checkpoint as best model
             torch.save(model.state_dict(), 'model_best')
